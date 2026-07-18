@@ -4,12 +4,10 @@ Per Ricerca Accademica sulla Cybersecurity
 """
 
 import os
-import sys
 import time
 from pathlib import Path
 from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor
-import psutil
 from tqdm import tqdm
 
 # Configurazione

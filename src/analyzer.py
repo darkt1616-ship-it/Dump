@@ -5,7 +5,6 @@ Per analisi statistiche e report
 
 from collections import Counter, defaultdict
 import re
-import hashlib
 from pathlib import Path
 
 class BreachAnalyzer:

@@ -2,9 +2,6 @@
 SISTEMA DI SICUREZZA - TEST CONTRO IL DUMP
 """
 
-import random
-from collections import defaultdict
-
 class SecuritySystemTester:
     def __init__(self, dump_file="data/breach_dataset.txt"):
         self.dump_file = dump_file

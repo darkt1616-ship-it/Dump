@@ -3,8 +3,6 @@ Unit tests for generator module
 """
 
 import pytest
-import tempfile
-import os
 from pathlib import Path
 
 # Aggiungi src al path per i test
