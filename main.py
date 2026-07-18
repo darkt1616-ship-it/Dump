@@ -24,9 +24,7 @@ def cli():
 @click.option('--righe', default=1000000, help='Numero di righe da generare')
 def generate(righe):
     """Genera il dataset di breach"""
-    import os
-    os.environ['NUM_RIGHE'] = str(righe)
-    genera_dataset()
+    genera_dataset(num_righe=righe)
 
 @cli.command()
 @click.option('--campione', default=10000, help='Numero di righe da analizzare')

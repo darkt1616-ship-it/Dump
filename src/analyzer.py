@@ -136,7 +136,12 @@ class BreachAnalyzer:
 """
         return report
 
-if __name__ == "__main__":
+def main():
+    """Entry point per il comando breach-analyze"""
     analyzer = BreachAnalyzer()
     analyzer.analizza(10000)
     print(analyzer.genera_report())
+
+
+if __name__ == "__main__":
+    main()

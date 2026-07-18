@@ -36,8 +36,8 @@ class TestGenerator:
         assert dominio in DOMINI
         
         # Verifica nome/cognome presenti
-        assert any(nome in email for nome in NOMI[:5])
-        assert any(cognome in email for cognome in COGNOMI[:5])
+        assert any(nome in email for nome in NOMI)
+        assert any(cognome in email for cognome in COGNOMI)
     
     def test_genera_password(self):
         """Test generazione password"""

@@ -6,8 +6,6 @@ Per Ricerca Accademica sulla Cybersecurity
 import os
 import sys
 import time
-import random
-import string
 from pathlib import Path
 from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor
@@ -95,11 +93,17 @@ def genera_email(index):
     nome = NOMI[hash_val % len(NOMI)]
     cognome = COGNOMI[(hash_val * 7) % len(COGNOMI)]
     
-    # Seleziona dominio
-    domini_lista = list(DOMINI.keys())
-    pesi = list(DOMINI.values())
-    dominio = random.choices(domini_lista, weights=pesi)[0]
-    
+    # Seleziona dominio in modo deterministico (rispettando i pesi)
+    totale_pesi = sum(DOMINI.values())
+    scelta = hash_val % totale_pesi
+    cum_peso = 0
+    dominio = next(iter(DOMINI))
+    for d, peso in DOMINI.items():
+        cum_peso += peso
+        if scelta < cum_peso:
+            dominio = d
+            break
+
     pattern = PATTERNS_EMAIL[hash_val % len(PATTERNS_EMAIL)]
     anno = 1970 + (hash_val % 36)
     numero = 1 + (hash_val % 9999)
@@ -164,74 +168,83 @@ def crea_directory():
     """Crea la directory per i dati"""
     Path("data").mkdir(exist_ok=True)
 
-def genera_dataset():
-    """Genera il dataset completo"""
+def genera_dataset(num_righe=None):
+    """Genera il dataset completo.
+
+    I parametri vengono letti al momento della chiamata (non all'import) cosi'
+    l'opzione --righe della CLI e le variabili d'ambiente hanno sempre effetto.
+    """
     crea_directory()
-    
+
+    # Leggi la configurazione al momento della chiamata
+    num_righe = num_righe if num_righe is not None else int(os.environ.get("NUM_RIGHE", "1000000"))
+    buffer_size = int(os.environ.get("BUFFER_SIZE", "100000"))
+    nome_file = os.environ.get("OUTPUT_FILE", "data/breach_dataset.txt")
+
     print("=" * 70)
     print("🔐 GENERAZIONE DATASET BREACH - RICERCA ACCADEMICA")
     print("=" * 70)
-    print(f"📊 Righe da generare: {NUM_RIGHE:,}")
+    print(f"📊 Righe da generare: {num_righe:,}")
     print(f"💻 CPU disponibili: {cpu_count()}")
     print(f"⚡ Processi in parallelo: {NUM_PROCESSI}")
-    print(f"📦 Buffer size: {BUFFER_SIZE:,}")
+    print(f"📦 Buffer size: {buffer_size:,}")
     print("=" * 70)
-    
+
     start_time = time.time()
-    
+
     # Rimuovi file esistente
-    if Path(NOME_FILE).exists():
-        Path(NOME_FILE).unlink()
-    
+    if Path(nome_file).exists():
+        Path(nome_file).unlink()
+
     # Calcola batch size ottimale
-    batch_size = min(50_000, max(5_000, NUM_RIGHE // (NUM_PROCESSI * 2)))
-    num_batch = (NUM_RIGHE + batch_size - 1) // batch_size
-    
+    batch_size = min(50_000, max(5_000, num_righe // (NUM_PROCESSI * 2)))
+    num_batch = (num_righe + batch_size - 1) // batch_size
+
     print(f"📦 Generazione di {num_batch:,} batch...\n")
-    
+
     # Generazione parallela
     with ProcessPoolExecutor(max_workers=NUM_PROCESSI) as executor:
         futures = []
         for batch_id in range(num_batch):
             start_idx = batch_id * batch_size
-            current_size = min(batch_size, NUM_RIGHE - start_idx)
+            current_size = min(batch_size, num_righe - start_idx)
             if current_size <= 0:
                 break
             future = executor.submit(genera_batch, start_idx, current_size)
             futures.append((future, batch_id))
-        
+
         # Scrittura ottimizzata
-        with open(NOME_FILE, 'w', encoding='utf-8') as f:
+        with open(nome_file, 'w', encoding='utf-8') as f:
             buffer = []
             righe_scritte = 0
-            
-            with tqdm(total=NUM_RIGHE, desc="Generazione", unit="righe") as pbar:
+
+            with tqdm(total=num_righe, desc="Generazione", unit="righe") as pbar:
                 for future, batch_id in futures:
                     try:
                         batch = future.result(timeout=120)
                         buffer.extend(batch)
                         righe_scritte += len(batch)
                         pbar.update(len(batch))
-                        
-                        if len(buffer) >= BUFFER_SIZE:
+
+                        if len(buffer) >= buffer_size:
                             f.writelines(buffer)
                             buffer.clear()
-                            
+
                     except Exception as e:
                         print(f"⚠️ Errore batch {batch_id}: {e}")
-                
+
                 if buffer:
                     f.writelines(buffer)
-    
+
     elapsed = time.time() - start_time
-    velocita = NUM_RIGHE / elapsed if elapsed > 0 else 0
-    file_size = Path(NOME_FILE).stat().st_size if Path(NOME_FILE).exists() else 0
-    
+    velocita = num_righe / elapsed if elapsed > 0 else 0
+    file_size = Path(nome_file).stat().st_size if Path(nome_file).exists() else 0
+
     print("\n" + "=" * 70)
     print("✅ GENERAZIONE COMPLETATA!")
     print("=" * 70)
-    print(f"📁 File: {NOME_FILE}")
-    print(f"📊 Righe: {NUM_RIGHE:,}")
+    print(f"📁 File: {nome_file}")
+    print(f"📊 Righe: {num_righe:,}")
     print(f"💾 Dimensione: {file_size / (1024**3):.2f} GB")
     print(f"⏱️ Tempo: {elapsed/60:.2f} minuti")
     print(f"⚡ Velocità: {velocita:,.0f} righe/secondo")

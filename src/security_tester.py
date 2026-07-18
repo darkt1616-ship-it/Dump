@@ -73,7 +73,12 @@ class SecuritySystemTester:
             detection_rate = self.detection_stats['breach_detected'] / self.detection_stats['total_attempts'] * 100
             print(f"📈 Tasso di rilevazione: {detection_rate:.1f}%")
 
-if __name__ == "__main__":
+def main():
+    """Entry point per il comando breach-test"""
     tester = SecuritySystemTester()
     tester.load_credentials(1000)
     tester.test_security_system()
+
+
+if __name__ == "__main__":
+    main()
