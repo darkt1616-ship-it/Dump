@@ -58,39 +58,127 @@ PATTERNS_EMAIL = [
     "{nome}{cognome}{numero}@{dominio}"
 ]
 
-# Password pattern e wordlist
+# ---------------------------------------------------------------------------
+# Wordlist italiane per password realistiche.
+# Basi ricorrenti nei breach di utenti italiani: parole comuni, squadre di
+# calcio, termini affettivi e sequenze da tastiera. Solo caratteri ASCII.
+# ---------------------------------------------------------------------------
 PAROLE_COMUNI = [
-    "password", "admin", "welcome", "login", "qwerty", "letmein",
-    "monkey", "dragon", "baseball", "football", "iloveyou", "princess",
-    "sunshine", "mustang", "passw0rd", "shadow", "ashley", "trustno1",
-    "hello", "freedom", "whatever", "cookie", "summer", "winter",
-    "spring", "autumn", "starwars", "batman", "superman", "matrix"
+    "password", "passwordit", "ciao", "ciaociao", "amore", "amoremio",
+    "tiamo", "tesoro", "cuore", "principessa", "bellezza", "stella",
+    "sole", "mare", "estate", "primavera", "vacanza", "montagna",
+    "casa", "famiglia", "liberta", "felicita", "segreto", "italia",
+    "vespa", "ferrari", "campione", "calcio", "pizza", "gelato",
+    "gatto", "gattino", "cane", "pippo", "pluto", "topolino",
+]
+
+# Squadre di calcio: tra le basi piu' frequenti nelle password italiane
+SQUADRE = [
+    "juventus", "juve", "forzajuve", "milan", "acmilan", "inter",
+    "napoli", "forzanapoli", "roma", "asroma", "lazio", "fiorentina",
+    "torino", "atalanta", "bologna", "genoa", "sampdoria", "palermo",
+]
+
+# Sequenze da tastiera / numeriche molto diffuse
+SEQUENZE = [
+    "123456", "1234567", "12345678", "123456789", "12345",
+    "qwerty", "qwertyuiop", "asdasd", "abc123", "111111",
+    "000000", "123123", "654321",
 ]
 
 SIMBOLI = ['!', '@', '#', '$', '%', '&', '*', '?', '+']
 
-PASSWORD_PATTERNS = [
-    ("{parola}{numero}", 25),
-    ("{parola}{simbolo}{numero}", 15),
-    ("{parola}{anno}", 12),
-    ("{parola}{parola2}{numero}", 10),
-    ("{parola}{simbolo}", 8),
-    ("{parola}", 7),
-    ("{numero}", 5),
-    ("{parola}{numero}{simbolo}", 5),
-    ("{parola}{parola2}{anno}", 4),
+# Strategie di generazione password con probabilita' (somma = 100).
+# "personale" deriva dai dati della mail (nome/cognome/anno): la password e'
+# quindi COERENTE con l'indirizzo email della stessa riga.
+STRATEGIE_PASSWORD = [
+    ("personale", 42),
+    ("parola", 30),
+    ("squadra", 13),
+    ("sequenza", 10),
+    ("comune_pura", 5),
 ]
 
+# Password "personali" (coerenti con la mail)
+PATTERNS_PERSONALI = [
+    "{nome}{anno}",
+    "{Nome}{anno}",
+    "{nome}{anno2}",
+    "{Nome}{anno2}",
+    "{cognome}{anno}",
+    "{Cognome}{anno}",
+    "{nome}{cognome}",
+    "{Nome}{Cognome}",
+    "{nome}{numero}",
+    "{Nome}{anno}{simbolo}",
+    "{nome}{simbolo}{anno}",
+    "{cognome}{anno2}{simbolo}",
+]
+
+# Password basate su una parola comune
+PATTERNS_PAROLA = [
+    "{parola}{numero}",
+    "{parola}{anno}",
+    "{parola}{anno2}",
+    "{Parola}{anno}",
+    "{parola}{simbolo}",
+    "{parola}{simbolo}{numero}",
+    "{parola}{parola2}",
+    "{Parola}{numero}{simbolo}",
+    "{parola}",
+]
+
+# Password a tema calcistico
+PATTERNS_SQUADRA = [
+    "{squadra}{anno}",
+    "{squadra}{anno2}",
+    "{squadra}{numero}",
+    "{Squadra}{anno}",
+    "{squadra}{simbolo}",
+    "{squadra}1",
+]
+
+
+def _hash(index, salt=0):
+    """Hash deterministico dell'indice, distribuito su [0, 10^6)."""
+    return (index * 2654435761 + 987654 + salt) % 1000000
+
+
+def _persona(index):
+    """Dati anagrafici deterministici associati a un indice.
+
+    Condivisi da mail e password, cosi' la password puo' risultare coerente
+    con l'indirizzo (stesso nome, cognome e anno di nascita).
+    """
+    h = _hash(index)
+    nome = NOMI[h % len(NOMI)]
+    cognome = COGNOMI[(h * 7) % len(COGNOMI)]
+    anno = 1960 + (h % 50)          # anno di nascita plausibile: 1960-2009
+    numero = 1 + (h % 9999)
+    return nome, cognome, anno, numero
+
+
+def _scelta_pesata(coppie, valore):
+    """Sceglie un elemento da una lista di (elemento, peso) in modo
+    deterministico a partire da un valore intero."""
+    totale = sum(peso for _, peso in coppie)
+    v = valore % totale
+    cum = 0
+    for elemento, peso in coppie:
+        cum += peso
+        if v < cum:
+            return elemento
+    return coppie[-1][0]
+
+
 def genera_email(index):
-    """Genera email realistica in modo deterministico"""
-    hash_val = (index * 2654435761 + 987654) % 1000000
-    
-    nome = NOMI[hash_val % len(NOMI)]
-    cognome = COGNOMI[(hash_val * 7) % len(COGNOMI)]
-    
-    # Seleziona dominio in modo deterministico (rispettando i pesi)
+    """Genera un'email realistica in modo deterministico."""
+    nome, cognome, anno, numero = _persona(index)
+    h = _hash(index)
+
+    # Seleziona il dominio in modo deterministico, rispettando i pesi
     totale_pesi = sum(DOMINI.values())
-    scelta = hash_val % totale_pesi
+    scelta = h % totale_pesi
     cum_peso = 0
     dominio = next(iter(DOMINI))
     for d, peso in DOMINI.items():
@@ -99,56 +187,58 @@ def genera_email(index):
             dominio = d
             break
 
-    pattern = PATTERNS_EMAIL[hash_val % len(PATTERNS_EMAIL)]
-    anno = 1970 + (hash_val % 36)
-    numero = 1 + (hash_val % 9999)
-    
+    pattern = PATTERNS_EMAIL[h % len(PATTERNS_EMAIL)]
     email = pattern.format(
         nome=nome,
         cognome=cognome,
         dominio=dominio,
         anno=anno,
-        numero=numero
+        numero=numero,
     )
-    
     return email.lower()
 
+
 def genera_password(index):
-    """Genera password realistica in modo deterministico"""
-    hash_val = (index * 2654435761 + 987654 + 999999) % 1000000
-    
-    # Seleziona pattern
-    rand_val = hash_val % 100
-    cum_prob = 0
-    pattern_scelto = PASSWORD_PATTERNS[0][0]
-    
-    for pattern, peso in PASSWORD_PATTERNS:
-        cum_prob += peso
-        if rand_val < cum_prob:
-            pattern_scelto = pattern
-            break
-    
-    # Genera componenti
-    parola1 = PAROLE_COMUNI[hash_val % len(PAROLE_COMUNI)]
-    # offset per garantire una seconda parola sempre diversa dalla prima
-    parola2 = PAROLE_COMUNI[(hash_val * 11 + 7) % len(PAROLE_COMUNI)]
-    numero = 1 + (hash_val % 9999)
-    simbolo = SIMBOLI[(hash_val * 17) % len(SIMBOLI)]
-    anno = 1970 + (hash_val % 36)
-    
-    password = pattern_scelto.format(
-        parola=parola1,
-        parola2=parola2,
-        numero=numero,
-        simbolo=simbolo,
-        anno=anno
-    )
-    
-    # Variazioni
-    if hash_val % 3 == 0:
-        password = password.capitalize()
-    
-    return password
+    """Genera una password realistica basata su wordlist italiane e coerente
+    con la mail generata per lo stesso indice, in modo deterministico.
+
+    Nel ~42% dei casi la password deriva dai dati della persona (nome,
+    cognome, anno di nascita) presenti anche nell'email; negli altri casi usa
+    parole comuni, squadre di calcio o sequenze tipiche dei breach italiani.
+    """
+    nome, cognome, anno, _ = _persona(index)
+    h = _hash(index, 999999)
+
+    parola = PAROLE_COMUNI[h % len(PAROLE_COMUNI)]
+    squadra = SQUADRE[(h * 13) % len(SQUADRE)]
+    campi = {
+        "nome": nome,
+        "Nome": nome.capitalize(),
+        "cognome": cognome,
+        "Cognome": cognome.capitalize(),
+        "anno": anno,
+        "anno2": str(anno)[-2:],
+        "numero": 1 + (h % 999),
+        "simbolo": SIMBOLI[(h * 17) % len(SIMBOLI)],
+        "parola": parola,
+        "Parola": parola.capitalize(),
+        "parola2": PAROLE_COMUNI[(h * 11 + 7) % len(PAROLE_COMUNI)],
+        "squadra": squadra,
+        "Squadra": squadra.capitalize(),
+    }
+
+    strategia = _scelta_pesata(STRATEGIE_PASSWORD, h)
+
+    if strategia == "personale":
+        return PATTERNS_PERSONALI[(h // 7) % len(PATTERNS_PERSONALI)].format(**campi)
+    if strategia == "parola":
+        return PATTERNS_PAROLA[(h // 7) % len(PATTERNS_PAROLA)].format(**campi)
+    if strategia == "squadra":
+        return PATTERNS_SQUADRA[(h // 7) % len(PATTERNS_SQUADRA)].format(**campi)
+    if strategia == "sequenza":
+        return SEQUENZE[(h // 7) % len(SEQUENZE)]
+    # comune_pura
+    return PAROLE_COMUNI[(h // 7) % len(PAROLE_COMUNI)]
 
 def genera_batch(start_idx, batch_size):
     """Genera un batch di righe"""

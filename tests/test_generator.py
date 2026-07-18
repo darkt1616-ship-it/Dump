@@ -15,7 +15,10 @@ from src.generator import (
     genera_batch,
     NOMI,
     COGNOMI,
-    DOMINI
+    DOMINI,
+    PAROLE_COMUNI,
+    SQUADRE,
+    SEQUENZE,
 )
 
 class TestGenerator:
@@ -75,10 +78,45 @@ class TestGenerator:
         email1 = genera_email(42)
         email2 = genera_email(42)
         assert email1 == email2
-        
+
         password1 = genera_password(42)
         password2 = genera_password(42)
         assert password1 == password2
+
+    def test_password_coerente_con_email(self):
+        """Una quota rilevante di password deve condividere nome o cognome con
+        l'email della stessa riga (coerenza mail <-> password)."""
+        campione = 3000
+        coerenti = 0
+        for i in range(campione):
+            local = genera_email(i).split('@')[0]
+            pwd = genera_password(i).lower()
+            nome_mail = next((n for n in NOMI if n in local), None)
+            cognome_mail = next((c for c in COGNOMI if c in local), None)
+            if (nome_mail and nome_mail in pwd) or (cognome_mail and cognome_mail in pwd):
+                coerenti += 1
+        # la strategia "personale" pesa ~42%, con margine assumiamo almeno 30%
+        assert coerenti / campione >= 0.30
+
+    def test_password_realistica_wordlist_italiana(self):
+        """Ogni password deve essere una sequenza nota oppure contenere una
+        base italiana (nome, cognome, parola comune o squadra): niente
+        stringhe casuali."""
+        basi = set(NOMI) | set(COGNOMI) | set(PAROLE_COMUNI) | set(SQUADRE)
+        for i in range(3000):
+            pwd = genera_password(i).lower()
+            if pwd in SEQUENZE:
+                continue
+            assert any(base in pwd for base in basi), f"password non riconosciuta: {pwd}"
+
+    def test_password_valide_su_campione(self):
+        """Char set e lunghezza validi su un ampio campione di indici."""
+        import string
+        validi = set(string.ascii_letters + string.digits + "!@#$%&*?+")
+        for i in range(3000):
+            pwd = genera_password(i)
+            assert 0 < len(pwd) <= 64
+            assert all(c in validi for c in pwd)
 
 # Esegui i test se il file è eseguito direttamente
 if __name__ == "__main__":
