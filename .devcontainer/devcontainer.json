@@ -37,6 +37,5 @@
   "remoteEnv": {
     "NUM_RIGHE": "1000000",
     "OUTPUT_FILE": "data/breach_dataset.txt"
-  },
-  "workspaceFolder": "/workspaces/breach-research"
+  }
 }

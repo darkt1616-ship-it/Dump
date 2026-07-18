@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 *.so
 .Python
 env/
@@ -23,16 +26,17 @@ wheels/
 .installed.cfg
 *.egg
 
-# Data files
-data/
-*.txt
-*.csv
-*.json
+# Data files (dataset generati e report)
+data/*
+!data/.gitkeep
+reports/
+logs/
 *.log
 
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 

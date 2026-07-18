@@ -5,7 +5,6 @@ Per analisi statistiche e report
 
 from collections import Counter, defaultdict
 import re
-import hashlib
 from pathlib import Path
 
 class BreachAnalyzer:
@@ -56,8 +55,8 @@ class BreachAnalyzer:
                         self.stats['pattern_breach']['solo_numeri'] += 1
                     if '123' in password or 'abc' in password.lower():
                         self.stats['pattern_breach']['pattern_sequenziale'] += 1
-                        
-                except:
+
+                except ValueError:
                     continue
         
         return self.stats
@@ -114,6 +113,7 @@ class BreachAnalyzer:
   Password corte: {self.stats['pattern_breach'].get('password_corte', 0):,}
   Solo numeri: {self.stats['pattern_breach'].get('solo_numeri', 0):,}
   Pattern sequenziali: {self.stats['pattern_breach'].get('pattern_sequenziale', 0):,}
+  Email con anno/numero: {self.stats['email_patterns'].get('con_anno', 0):,}
 
 🔑 PASSWORD PIU' COMUNI
 ───────────────────────────────────────────────"""
@@ -136,7 +136,12 @@ class BreachAnalyzer:
 """
         return report
 
-if __name__ == "__main__":
+def main():
+    """Entry point per il comando breach-analyze"""
     analyzer = BreachAnalyzer()
     analyzer.analizza(10000)
     print(analyzer.genera_report())
+
+
+if __name__ == "__main__":
+    main()

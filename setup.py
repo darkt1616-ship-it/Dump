@@ -3,8 +3,6 @@ Setup configuration for Breach Research package
 """
 
 from setuptools import setup, find_packages
-import os
-import sys
 
 # Leggi il README per la descrizione lunga
 with open("README.md", "r", encoding="utf-8") as fh:
@@ -24,6 +22,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/[tuo-username]/breach-research",
     packages=find_packages(include=["src", "src.*"]),
+    py_modules=["main"],
     package_dir={"": "."},
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -50,13 +49,6 @@ setup(
             "mypy>=1.0.0",
             "isort>=5.12.0",
         ],
-        "gpu": [
-            "cupy-cuda11x>=12.0.0",
-        ],
-        "notebook": [
-            "jupyter>=1.0.0",
-            "ipykernel>=6.0.0",
-        ],
     },
     entry_points={
         "console_scripts": [
@@ -77,9 +69,9 @@ setup(
 # Post-install script per creare le directory
 if __name__ == "__main__":
     # Crea directory necessarie
-    import os
     from pathlib import Path
-    
+
+
     directories = ["data", "logs", "reports"]
     for dir_name in directories:
         Path(dir_name).mkdir(exist_ok=True)
