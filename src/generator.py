@@ -46,11 +46,11 @@ COGNOMI = {
     "parisi": 24, "conte": 24, "bianco": 23, "villa": 23,
 }
 
-# Provider email italiani storici, pesati sulla loro diffusione relativa.
+# Provider email italiani storici, ripartiti in modo equo (~1/3 ciascuno).
 DOMINI = {
-    "libero.it": 60,
-    "virgilio.it": 25,
-    "alice.it": 15,
+    "libero.it": 1,
+    "virgilio.it": 1,
+    "alice.it": 1,
 }
 
 # Pattern email realistici. {serial} e' un identificativo numerico UNIVOCO
