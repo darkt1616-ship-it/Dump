@@ -46,33 +46,28 @@ COGNOMI = {
     "parisi": 24, "conte": 24, "bianco": 23, "villa": 23,
 }
 
-# Domini email pesati sulle quote di mercato italiane (gmail dominante,
-# libero.it molto diffuso, provider storici .it, ecc.).
+# Provider email italiani storici, pesati sulla loro diffusione relativa.
 DOMINI = {
-    "gmail.com": 42,
-    "libero.it": 14,
-    "hotmail.com": 8,
-    "outlook.com": 7,
-    "yahoo.com": 6,
-    "virgilio.it": 6,
-    "icloud.com": 6,
-    "alice.it": 4,
-    "tin.it": 2,
-    "tiscali.it": 2,
-    "live.it": 2,
-    "email.it": 1,
+    "libero.it": 60,
+    "virgilio.it": 25,
+    "alice.it": 15,
 }
 
-# Pattern email realistici
+# Pattern email realistici. {serial} e' un identificativo numerico UNIVOCO
+# posto sempre in coda al local-part: garantisce che ogni email (e quindi
+# ogni riga) sia diversa anche su centinaia di milioni di record.
+# In ogni pattern il serial e' l'ultima sequenza di cifre prima della '@'
+# (eventuali cifre precedenti sono separate da un punto), cosi' la
+# costruzione resta iniettiva sull'indice.
 PATTERNS_EMAIL = [
-    "{nome}.{cognome}@{dominio}",
-    "{nome}{cognome}@{dominio}",
-    "{nome}_{cognome}@{dominio}",
-    "{nome}{cognome}{anno}@{dominio}",
-    "{nome}.{cognome}{anno}@{dominio}",
-    "{nome}{cognome}_{numero}@{dominio}",
-    "{nome}{numero}@{dominio}",
-    "{nome}{cognome}{numero}@{dominio}"
+    "{nome}.{cognome}{serial}@{dominio}",
+    "{nome}{cognome}{serial}@{dominio}",
+    "{nome}.{cognome}.{serial}@{dominio}",
+    "{nome}_{cognome}{serial}@{dominio}",
+    "{nome}{ic}{serial}@{dominio}",              # nome + iniziale cognome
+    "{in}{cognome}{serial}@{dominio}",           # iniziale nome + cognome
+    "{nome}.{cognome}{anno}.{serial}@{dominio}",  # anno di nascita visibile
+    "{nome}{cognome}{anno2}.{serial}@{dominio}",
 ]
 
 # ---------------------------------------------------------------------------
@@ -184,9 +179,37 @@ DOMINI_POOL = _pool(DOMINI)
 TOP_PASSWORD_POOL = _pool(TOP_PASSWORD)
 
 
+# Capacita' di righe UNIVOCHE garantite. Entro questo limite ogni indice
+# produce un'email diversa (nessuna riga duplicata). 10^9 copre ampiamente
+# "centinaia di milioni"; per superare 1 miliardo di righe, aumentare il valore.
+CAPACITA_UNIVOCA = 10 ** 9
+
+_MASK64 = (1 << 64) - 1
+
+
 def _hash(index, salt=0):
-    """Hash deterministico dell'indice, distribuito su [0, 10^6)."""
-    return (index * 2654435761 + 987654 + salt) % 1000000
+    """Hash deterministico a 64 bit dell'indice (variante di splitmix64).
+
+    Il periodo enorme evita che gli attributi (nome, cognome, password...) si
+    ripetano ciclicamente sui grandi volumi come accadeva con il modulo 10^6.
+    """
+    x = ((index + 1) * 0x9E3779B97F4A7C15 + salt * 0xD1B54A32D192ED03) & _MASK64
+    x ^= x >> 30
+    x = (x * 0xBF58476D1CE4E5B9) & _MASK64
+    x ^= x >> 27
+    x = (x * 0x94D049BB133111EB) & _MASK64
+    x ^= x >> 31
+    return x
+
+
+def _serial(index):
+    """Identificativo numerico UNIVOCO per l'indice.
+
+    E' una bijezione su [0, CAPACITA_UNIVOCA): indici diversi danno serial
+    diversi, quindi email diverse. Il moltiplicatore e' coprimo con la
+    capacita' (10^9 = 2^9 * 5^9), condizione necessaria per l'iniettivita'.
+    """
+    return (index * 2654435761 + 12345) % CAPACITA_UNIVOCA
 
 
 def _persona(index):
@@ -198,7 +221,7 @@ def _persona(index):
     """
     h = _hash(index)
     nome = NOMI_POOL[h % len(NOMI_POOL)]
-    cognome = COGNOMI_POOL[(h * 7) % len(COGNOMI_POOL)]
+    cognome = COGNOMI_POOL[(h >> 20) % len(COGNOMI_POOL)]
     anno = 1960 + (h % 50)          # anno di nascita plausibile: 1960-2009
     numero = 1 + (h % 9999)
     return nome, cognome, anno, numero
@@ -218,20 +241,27 @@ def _scelta_pesata(coppie, valore):
 
 
 def genera_email(index):
-    """Genera un'email realistica in modo deterministico."""
-    nome, cognome, anno, numero = _persona(index)
+    """Genera un'email realistica e UNIVOCA in modo deterministico.
+
+    Grazie all'identificativo univoco in coda al local-part, indici diversi
+    producono email diverse: due righe non sono mai identiche, nemmeno su
+    centinaia di milioni di record (fino a CAPACITA_UNIVOCA).
+    """
+    nome, cognome, anno, _ = _persona(index)
     h = _hash(index)
 
-    dominio = DOMINI_POOL[h % len(DOMINI_POOL)]
-    pattern = PATTERNS_EMAIL[h % len(PATTERNS_EMAIL)]
-    email = pattern.format(
-        nome=nome,
-        cognome=cognome,
-        dominio=dominio,
-        anno=anno,
-        numero=numero,
-    )
-    return email.lower()
+    campi = {
+        "nome": nome,
+        "cognome": cognome,
+        "in": nome[0],          # iniziale nome
+        "ic": cognome[0],       # iniziale cognome
+        "anno": anno,
+        "anno2": str(anno)[-2:],
+        "serial": _serial(index),
+        "dominio": DOMINI_POOL[h % len(DOMINI_POOL)],
+    }
+    pattern = PATTERNS_EMAIL[(h >> 40) % len(PATTERNS_EMAIL)]
+    return pattern.format(**campi).lower()
 
 
 def genera_password(index):

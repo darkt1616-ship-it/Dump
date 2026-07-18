@@ -36,10 +36,9 @@ class TestGenerator:
         # Verifica dominio valido
         dominio = email.split('@')[1]
         assert dominio in DOMINI
-        
-        # Verifica nome/cognome presenti
-        assert any(nome in email for nome in NOMI)
-        assert any(cognome in email for cognome in COGNOMI)
+
+        # Ogni pattern contiene almeno il nome o il cognome per esteso
+        assert any(nome in email for nome in NOMI) or any(cognome in email for cognome in COGNOMI)
     
     def test_genera_password(self):
         """Test generazione password"""
@@ -83,6 +82,15 @@ class TestGenerator:
         password1 = genera_password(42)
         password2 = genera_password(42)
         assert password1 == password2
+
+    def test_righe_uniche(self):
+        """Nessuna riga (email:password) deve mai ripetersi identica, e le
+        email devono essere tutte diverse (identificativo univoco in coda)."""
+        n = 200000
+        righe = {f"{genera_email(i)}:{genera_password(i)}" for i in range(n)}
+        assert len(righe) == n, "trovate righe duplicate"
+        emails = {genera_email(i) for i in range(n)}
+        assert len(emails) == n, "trovate email duplicate"
 
     def test_password_coerente_con_email(self):
         """Una quota rilevante di password deve condividere nome o cognome con
