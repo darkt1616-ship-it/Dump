@@ -10,11 +10,8 @@ from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
-# Configurazione
-NUM_RIGHE = int(os.environ.get("NUM_RIGHE", "1000000"))
-BUFFER_SIZE = int(os.environ.get("BUFFER_SIZE", "100000"))
+# Configurazione (i valori runtime vengono letti dentro genera_dataset)
 NUM_PROCESSI = max(1, cpu_count() - 1)
-NOME_FILE = os.environ.get("OUTPUT_FILE", "data/breach_dataset.txt")
 
 # Database nomi e cognomi (ISTAT)
 NOMI = [
@@ -76,12 +73,12 @@ PASSWORD_PATTERNS = [
     ("{parola}{numero}", 25),
     ("{parola}{simbolo}{numero}", 15),
     ("{parola}{anno}", 12),
-    ("{parola}{parola}{numero}", 10),
+    ("{parola}{parola2}{numero}", 10),
     ("{parola}{simbolo}", 8),
     ("{parola}", 7),
     ("{numero}", 5),
     ("{parola}{numero}{simbolo}", 5),
-    ("{parola}{parola}{anno}", 4),
+    ("{parola}{parola2}{anno}", 4),
 ]
 
 def genera_email(index):
@@ -133,7 +130,8 @@ def genera_password(index):
     
     # Genera componenti
     parola1 = PAROLE_COMUNI[hash_val % len(PAROLE_COMUNI)]
-    parola2 = PAROLE_COMUNI[(hash_val * 11) % len(PAROLE_COMUNI)]
+    # offset per garantire una seconda parola sempre diversa dalla prima
+    parola2 = PAROLE_COMUNI[(hash_val * 11 + 7) % len(PAROLE_COMUNI)]
     numero = 1 + (hash_val % 9999)
     simbolo = SIMBOLI[(hash_val * 17) % len(SIMBOLI)]
     anno = 1970 + (hash_val % 36)
@@ -162,22 +160,19 @@ def genera_batch(start_idx, batch_size):
         batch.append(f"{email}:{password}\n")
     return batch
 
-def crea_directory():
-    """Crea la directory per i dati"""
-    Path("data").mkdir(exist_ok=True)
-
 def genera_dataset(num_righe=None):
     """Genera il dataset completo.
 
     I parametri vengono letti al momento della chiamata (non all'import) cosi'
     l'opzione --righe della CLI e le variabili d'ambiente hanno sempre effetto.
     """
-    crea_directory()
-
     # Leggi la configurazione al momento della chiamata
     num_righe = num_righe if num_righe is not None else int(os.environ.get("NUM_RIGHE", "1000000"))
     buffer_size = int(os.environ.get("BUFFER_SIZE", "100000"))
     nome_file = os.environ.get("OUTPUT_FILE", "data/breach_dataset.txt")
+
+    # Crea la directory di output (gestisce anche OUTPUT_FILE con sottocartelle)
+    Path(nome_file).parent.mkdir(parents=True, exist_ok=True)
 
     print("=" * 70)
     print("🔐 GENERAZIONE DATASET BREACH - RICERCA ACCADEMICA")
@@ -235,14 +230,14 @@ def genera_dataset(num_righe=None):
                     f.writelines(buffer)
 
     elapsed = time.time() - start_time
-    velocita = num_righe / elapsed if elapsed > 0 else 0
+    velocita = righe_scritte / elapsed if elapsed > 0 else 0
     file_size = Path(nome_file).stat().st_size if Path(nome_file).exists() else 0
 
     print("\n" + "=" * 70)
     print("✅ GENERAZIONE COMPLETATA!")
     print("=" * 70)
     print(f"📁 File: {nome_file}")
-    print(f"📊 Righe: {num_righe:,}")
+    print(f"📊 Righe scritte: {righe_scritte:,}")
     print(f"💾 Dimensione: {file_size / (1024**3):.2f} GB")
     print(f"⏱️ Tempo: {elapsed/60:.2f} minuti")
     print(f"⚡ Velocità: {velocita:,.0f} righe/secondo")

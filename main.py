@@ -4,12 +4,7 @@ BREACH RESEARCH - Main Entry Point
 Per Ricerca Accademica sulla Cybersecurity
 """
 
-import sys
 import click
-from pathlib import Path
-
-# Aggiungi src al path
-sys.path.append(str(Path(__file__).parent / "src"))
 
 from src.generator import genera_dataset
 from src.analyzer import BreachAnalyzer

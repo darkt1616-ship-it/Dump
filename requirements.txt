@@ -1,23 +1,7 @@
-# Core dependencies
-numpy>=1.24.0
-psutil>=5.9.0
-tqdm>=4.65.0
-pandas>=2.0.0
-matplotlib>=3.7.0
-seaborn>=0.12.0
+# Dipendenze runtime effettivamente usate dal codice
+click>=8.1.0        # interfaccia a riga di comando (main.py)
+tqdm>=4.65.0        # barra di avanzamento (src/generator.py)
+psutil>=5.9.0       # informazioni di sistema (src/utils.py)
+pyyaml>=6.0         # lettura/scrittura configurazioni (src/utils.py)
 
-# Performance
-numba>=0.57.0
-multiprocess>=0.70.14
-
-# Analysis
-scipy>=1.10.0
-scikit-learn>=1.2.0
-
-# Utils
-python-dotenv>=1.0.0
-pyyaml>=6.0
-click>=8.1.0
-
-# Optional (per GPU)
-# cupy-cuda11x>=12.0.0  # Uncomment per GPU support
+# NB: per i test installare pytest (vedi setup.py -> extras_require["dev"])
