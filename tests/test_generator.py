@@ -19,6 +19,7 @@ from src.generator import (
     PAROLE_COMUNI,
     SQUADRE,
     SEQUENZE,
+    TOP_PASSWORD,
 )
 
 class TestGenerator:
@@ -103,9 +104,10 @@ class TestGenerator:
         base italiana (nome, cognome, parola comune o squadra): niente
         stringhe casuali."""
         basi = set(NOMI) | set(COGNOMI) | set(PAROLE_COMUNI) | set(SQUADRE)
+        note = set(SEQUENZE) | set(TOP_PASSWORD)
         for i in range(3000):
             pwd = genera_password(i).lower()
-            if pwd in SEQUENZE:
+            if pwd in note:
                 continue
             assert any(base in pwd for base in basi), f"password non riconosciuta: {pwd}"
 
