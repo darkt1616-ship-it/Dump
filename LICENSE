@@ -1,0 +1,28 @@
+
+### 8. **`setup.py`**
+
+```python
+from setuptools import setup, find_packages
+
+setup(
+    name="breach-research",
+    version="1.0.0",
+    description="Research tool for credential stuffing analysis",
+    author="[Il Tuo Nome]",
+    author_email="[tua.email@universita.it]",
+    packages=find_packages(),
+    install_requires=[
+        "numpy>=1.24.0",
+        "psutil>=5.9.0",
+        "tqdm>=4.65.0",
+        "pandas>=2.0.0",
+        "matplotlib>=3.7.0",
+        "click>=8.1.0",
+    ],
+    entry_points={
+        "console_scripts": [
+            "breach-research=main:cli",
+        ],
+    },
+    python_requires=">=3.8",
+)
