@@ -2,6 +2,9 @@
 SISTEMA DI SICUREZZA - TEST CONTRO IL DUMP
 """
 
+from pathlib import Path
+
+
 class SecuritySystemTester:
     def __init__(self, dump_file="data/breach_dataset.txt"):
         self.dump_file = dump_file
@@ -14,7 +17,11 @@ class SecuritySystemTester:
     def load_credentials(self, num_credenziali=1000):
         """Carica credenziali dal dump"""
         print(f"📥 Carico {num_credenziali:,} credenziali...")
-        
+
+        if not Path(self.dump_file).exists():
+            print(f"❌ File {self.dump_file} non trovato! Esegui prima 'generate'.")
+            return
+
         with open(self.dump_file, 'r', encoding='utf-8') as f:
             for i, line in enumerate(f):
                 if i >= num_credenziali:

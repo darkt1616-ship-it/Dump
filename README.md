@@ -19,8 +19,7 @@ Progetto per la ricerca sul credential stuffing e la cybersecurity. Genera datas
 ├── src/                  # Pacchetto Python
 │   ├── generator.py      # Generazione dataset
 │   ├── analyzer.py       # Analisi statistica
-│   ├── security_tester.py# Test del sistema di sicurezza
-│   └── utils.py          # Funzioni di utilità
+│   └── security_tester.py# Test del sistema di sicurezza
 ├── tests/                # Test unitari
 └── data/                 # Output generati (ignorati da git)
 ```

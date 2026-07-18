@@ -49,13 +49,6 @@ setup(
             "mypy>=1.0.0",
             "isort>=5.12.0",
         ],
-        "gpu": [
-            "cupy-cuda11x>=12.0.0",
-        ],
-        "notebook": [
-            "jupyter>=1.0.0",
-            "ipykernel>=6.0.0",
-        ],
     },
     entry_points={
         "console_scripts": [
